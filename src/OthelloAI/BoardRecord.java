@@ -16,7 +16,6 @@ public class BoardRecord {
     private double score = 0.0; //評価値の合計
     private int tryCount = 0; //このテストデータの試行回数
 
-
     BoardRecord(String[] b, String c, int x, int y) {
         board = Arrays.stream(b)
                 .mapToInt(p -> Integer.parseInt(p) * Integer.parseInt(c))
@@ -78,7 +77,6 @@ public class BoardRecord {
         }
         return FALSE;
     }
-
 
     /**
      * 同じ盤面ならTRUE
