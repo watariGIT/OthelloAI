@@ -6,6 +6,7 @@ import OthelloAI.TableMonteOthelloAI;
 import java.io.*;
 import java.net.Socket;
 import java.util.ArrayList;
+import com.iciql.Db;
 
 /**
  * Created by watariMac on 2017/06/23.
@@ -16,7 +17,7 @@ public class Main {
     static ArrayList<BoardRecord>[] trainingRecord;
 
     static public void main(String args[]) {
-
+        Db db=Db.open("jdbc:mysql://127.0.0.1:3306/othelloDB","othello","password");
         String mode = "vs";
         int count = 1000;
         String inputFileName = "data";
