@@ -25,7 +25,7 @@ public class MontecaloOthelloAI extends AbstractOthelloAI {
     void sendPut() {
         int px = -1;
         int py = -1;
-        ArrayList<BoardRecord> tdList = trainingData[BoardRecord.getKey(board,color) % trainingData.length];
+        ArrayList<BoardRecord> tdList = trainingData[BoardRecord.getKey(board, color) % trainingData.length];
         Stream<BoardRecord> tdStream = tdList.stream().filter(b -> b.isBoardEqual(board, color));
         tdList.stream().filter(b -> b.isBoardEqual(board, color))
                 .forEach(b -> System.out.println(b.putX + "," + b.putY + ": " + b.getAverageScore()));

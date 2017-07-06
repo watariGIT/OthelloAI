@@ -1,5 +1,7 @@
 package OthelloAI;
 
+import com.iciql.Dao;
+
 import java.io.*;
 import java.net.Socket;
 import java.util.ArrayList;
@@ -17,8 +19,9 @@ public abstract class AbstractOthelloAI extends Thread {
     protected String color;
     protected String[] board;
 
+
     ArrayList<BoardRecord> recordList = new ArrayList<>();
-    Boolean[] lawfullArray = new Boolean[64];
+    Boolean[] lawfullArray = new Boolean[64]; //そこに手が置けるかのフラグ。
 
     AbstractOthelloAI(Socket sc, String nick) throws IOException {
         socket = sc;
@@ -40,7 +43,9 @@ public abstract class AbstractOthelloAI extends Thread {
 
     abstract void sendPut();
 
-
+    /**
+     * ランダムにおくメソッド。
+     */
     void sendRandomPut() {
         int put;
         do {

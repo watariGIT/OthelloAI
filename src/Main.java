@@ -19,8 +19,8 @@ public class Main {
 
         String mode = "vs";
         int count = 1000;
-        String inputFileName = "log0627.txt";
-        String outputFileName = "log0628-111.txt";
+        String inputFileName = "data";
+        String outputFileName = "outputData";
 
         //標準入力の処理
         for (int i = 0; i < args.length; ++i) {

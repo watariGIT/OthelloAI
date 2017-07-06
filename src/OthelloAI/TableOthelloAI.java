@@ -21,12 +21,11 @@ public class TableOthelloAI extends AbstractOthelloAI {
         //評価値テーブルの生成
         for (ArrayList<BoardRecord> tList : tr) {
             for (BoardRecord t : tList) {
-                int turn = (int) Arrays.stream(t.board).filter(s -> s != 0).count() + 1;
                 for (int j = 0; j < 64; j++) {
                     int x = t.putX;
                     int y = t.putY;
                     for (int i = 0; i < 4; i++) {
-                        scoreTable[j][x * 8 + y] += t.getAverageScore() * Math.pow(0.9, Math.abs(turn - j));
+                        scoreTable[j][x * 8 + y] += t.getAverageScore();
                         int a = x;
                         x = y;
                         y = 7 - a;
