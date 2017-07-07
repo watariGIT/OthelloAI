@@ -1,5 +1,7 @@
 package OthelloAI;
 
+import com.iciql.Db;
+
 import java.io.IOException;
 import java.net.Socket;
 
@@ -8,12 +10,13 @@ import java.net.Socket;
  */
 public class RandomOthelloAI extends AbstractOthelloAI {
 
-    public RandomOthelloAI(Socket sc, String nick) throws IOException {
-        super(sc, nick);
+    public RandomOthelloAI(Socket sc, String nick,Db othelloDb) throws IOException {
+        super(sc, nick,othelloDb);
     }
 
     @Override
     void sendPut(){
         sendRandomPut();
     }
+
 }

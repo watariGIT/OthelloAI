@@ -1,9 +1,13 @@
 package OthelloAI;
 
+import com.iciql.Db;
+import com.iciql.Iciql;
+
 import java.io.IOException;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
 
@@ -11,36 +15,27 @@ import java.util.stream.Stream;
  * Created by watariMac on 2017/06/27.
  */
 public class TableMonteOthelloAI extends AbstractOthelloAI {
-    ArrayList<BoardRecord>[] trainingData = new ArrayList[57];
-    double scoreTable[][] = new double[64][64];
-    double random = 0.0;
+    private double scoreTable[][] = new double[64][64];
+    private double random = 0.0;
 
-    public TableMonteOthelloAI(Socket sc, String nick, ArrayList<BoardRecord>[] tr, double rand) throws IOException {
-        super(sc, nick);
+
+    public TableMonteOthelloAI(Socket sc, String nick, Db othelloDb, double rand) throws IOException {
+        super(sc, nick, othelloDb);
         random = rand;
         Arrays.stream(scoreTable).map(t -> Arrays.stream(t).map(d -> d = 0.0));
 
-        for (int i = 0; i < trainingData.length; i++) {
-            trainingData[i] = tr[i];
-        }
+        //DBから評価値テーブルの生成
+        scoreTable=getScoreTable(othelloDb);
+    }
 
-        //評価値テーブルの生成
-        for (ArrayList<BoardRecord> tList : tr) {
-            for (BoardRecord t : tList) {
-                for (int j = 0; j < 64; j++) {
-                    int x = t.putX;
-                    int y = t.putY;
-                    for (int i = 0; i < 4; i++) {
-                        scoreTable[j][x * 8 + y] += t.getAverageScore();
-                        int a = x;
-                        x = y;
-                        y = 7 - a;
-                    }
-                }
-            }
-        }
-        System.out.print(nickName + " <make score table");
 
+    public TableMonteOthelloAI(Socket sc, String nick, Db othelloDb, double[][] scoreTable, double rand) throws IOException {
+        super(sc, nick, othelloDb);
+        random = rand;
+        Arrays.stream(scoreTable).map(t -> Arrays.stream(t).map(d -> d = 0.0));
+
+        //DBから評価値テーブルの生成
+        this.scoreTable = scoreTable;
     }
 
 
@@ -54,22 +49,27 @@ public class TableMonteOthelloAI extends AbstractOthelloAI {
             return;
         }
 
-        ArrayList<BoardRecord> tdList = trainingData[BoardRecord.getKey(board, color) % trainingData.length];
-        Stream<BoardRecord> tdStream = tdList.stream().filter(b -> b.isBoardEqual(board, color));
-        Optional<BoardRecord> obr = tdStream.max((br1, br2) -> (int) (br1.getAverageScore() * 10000 - br2.getAverageScore() * 10000));
+        //DBから同じ盤面があったか調べる
+        BoardRecordModel br = new BoardRecordModel();
+        List<BoardRecordModel> recordModelList = othelloDb.from(br)
+                .where(br.board)
+                .is(new BoardRecord(board, color, 0, 0).getModel().board)
+                .select();
 
-        if (obr.isPresent() && obr.get().getAverageScore() >=0) {
-            int rotationCount = obr.get().getRotationCount(board, color);
-            px = obr.get().putX;
-            py = obr.get().putY;
-            for (int i = 0; i < rotationCount; i++) {
-                int a = px;
-                px = py;
-                py = 7 - a;
-            }
-            System.out.println(nickName + "< PUT" + px + "," + py);
+
+        Optional<BoardRecordModel> maxOpt
+                = recordModelList.stream()
+                .max((a, b) -> (int) (a.score / (double) a.try_count - b.score / (double) b.try_count));
+
+        if (maxOpt.isPresent() && maxOpt.get().score >= 0) {
+
+            BoardRecordModel maxModel = maxOpt.get();
+            px = maxModel.put_x;
+            py = maxModel.put_y;
+            System.out.println("put (" + px + ", " + py + ")");
 
         } else {
+
             //データになければ評価テーブルに従う
             int turn = (int) Arrays.stream(board).filter(s -> !s.equals("0")).count() - 1;
             double[] turnScoreTable = scoreTable[turn];
@@ -87,7 +87,7 @@ public class TableMonteOthelloAI extends AbstractOthelloAI {
             px = put / 8;
             py = put % 8;
             lawfullArray[put] = false;
-            System.out.println(nickName + "< TABLE PUT" + px + "," + py);
+            //System.out.println(nickName + "< TABLE PUT" + px + "," + py);
         }
 
         recordList.add(new BoardRecord(board, color, px, py));
@@ -95,4 +95,20 @@ public class TableMonteOthelloAI extends AbstractOthelloAI {
         pw.flush();
     }
 
+
+    public static double[][] getScoreTable(Db db) {
+        //DBから評価値テーブルの生成
+        double[][] scoreTable = new double[64][64];
+        BoardRecordModel br = new BoardRecordModel();
+        List<BoardRecordModel> recordModelList = db.from(br).select();
+        for (BoardRecordModel model : recordModelList) {
+            String[] boards = model.board.split(",");
+            int turn = (int) Arrays.stream(boards).filter(s -> !s.equals("0")).count() - 1;
+            int x = model.put_x;
+            int y = model.put_y;
+            scoreTable[turn][x * 8 + y] += model.score / model.try_count;
+        }
+        System.out.println("Create Score Table");
+        return scoreTable;
+    }
 }

@@ -1,11 +1,14 @@
 package OthelloAI;
 
 import com.iciql.Dao;
+import com.iciql.Db;
 
 import java.io.*;
 import java.net.Socket;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 /**
  * Created by watariMac on 2017/06/23.
@@ -18,13 +21,15 @@ public abstract class AbstractOthelloAI extends Thread {
     protected String nickName;
     protected String color;
     protected String[] board;
+    public Db othelloDb;
 
 
     ArrayList<BoardRecord> recordList = new ArrayList<>();
     Boolean[] lawfullArray = new Boolean[64]; //そこに手が置けるかのフラグ。
 
-    AbstractOthelloAI(Socket sc, String nick) throws IOException {
+    AbstractOthelloAI(Socket sc, String nick, Db db) throws IOException {
         socket = sc;
+        this.othelloDb = db;
         pw = new PrintWriter(socket.getOutputStream());
         br = new BufferedReader(new InputStreamReader(socket.getInputStream()));
         nickName = nick;
@@ -43,6 +48,7 @@ public abstract class AbstractOthelloAI extends Thread {
 
     abstract void sendPut();
 
+
     /**
      * ランダムにおくメソッド。
      */
@@ -59,6 +65,38 @@ public abstract class AbstractOthelloAI extends Thread {
         recordList.add(new BoardRecord(board, color, x, y));
         pw.println("PUT " + x + " " + y);
         pw.flush();
+    }
+
+
+    /**
+     * DBを更新するメソッド
+     */
+    public void updateBoardRecordDb() throws SQLException{
+        
+        ArrayList<BoardRecordModel> recordModelList = new ArrayList<>();
+        recordList.forEach(r -> recordModelList.add(r.getModel()));
+        /*recordList.forEach(r -> recordModelList.add(r.rotationBoard().getModel()));
+        recordList.forEach(r -> recordModelList.add(r.rotationBoard().rotationBoard().getModel()));
+        recordList.forEach(r -> recordModelList.add(r.rotationBoard().rotationBoard().rotationBoard().getModel()));*/
+
+        for (BoardRecordModel model : recordModelList) {
+            BoardRecordModel brcord = new BoardRecordModel();
+            List<BoardRecordModel> selectList =
+                    othelloDb.executeQuery(brcord.getClass(),
+                            "select * from board_record where board=? and put_x=? and put_y=? for update",
+                            model.board,model.put_x,model.put_y);
+
+            if (selectList.isEmpty()) {
+                othelloDb.insert(model);
+            } else {
+                for (BoardRecordModel s : selectList) {
+                    s.score += model.score;
+                    s.try_count += model.try_count;
+                    othelloDb.update(s);
+                }
+            }
+            othelloDb.getConnection().commit();
+        }
     }
 
 
